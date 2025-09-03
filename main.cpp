@@ -2,6 +2,7 @@
 #include <memory>
 #include <pthread.h>
 #include <cstdlib>
+#include <stdlib.h>
 #include <malloc.h>
 #include <iostream>  
 #include "ssmem.h"
@@ -21,6 +22,9 @@ struct threadArgs {
 };
 
 void* threadFunc(void* arg) {
+#ifdef DEBUG
+	std::cout << "thread has started\n";
+#endif
     auto* t_args = static_cast<threadArgs*>(arg);
     int tid = t_args->tid;
     auto* queue = t_args->queue;
@@ -42,7 +46,7 @@ void* threadFunc(void* arg) {
     ssmem_alloc_init(volatileAlloc, SSMEM_DEFAULT_MEM_SIZE, tid);
 
 #ifdef DEBUG
-    std::cout << "thread " << tid << " has started... q = " << queue << "\n";
+    std::cout << "thread " << tid << " has q ptr = " << queue << "\n";
 #endif
     assert(alloc && volatileAlloc);
 
@@ -56,15 +60,16 @@ void* threadFunc(void* arg) {
 
 int main() {
     // pre-initialize allocators for each thread
-    for (int i = 0; i < NUM_THREADS; i++) {
-        alloc = static_cast<ssmem_allocator_t*>(malloc(sizeof(ssmem_allocator_t)));
+	alloc = static_cast<ssmem_allocator_t*>(malloc(sizeof(ssmem_allocator_t)));
         assert(alloc);
         volatileAlloc = static_cast<ssmem_allocator_t*>(malloc(sizeof(ssmem_allocator_t)));
         assert(volatileAlloc);
 
-        ssmem_alloc_init(alloc, SSMEM_DEFAULT_MEM_SIZE, i);
-        ssmem_alloc_init(volatileAlloc, SSMEM_DEFAULT_MEM_SIZE, i);
-    }
+#ifdef DEBUG
+	printf("alloc ptr: %p\nvolatilealloc ptr: %p\n", alloc, volatileAlloc);
+#endif
+        ssmem_alloc_init(alloc, SSMEM_DEFAULT_MEM_SIZE, 0);
+        ssmem_alloc_init(volatileAlloc, SSMEM_DEFAULT_MEM_SIZE, 0);
 
     // create queue
     auto* queue = new OptUnlinkedQ<int>();
